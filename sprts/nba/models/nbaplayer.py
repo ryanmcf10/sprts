@@ -7,6 +7,7 @@ from nba_api.stats.endpoints import CommonPlayerInfo
 
 from shared.models import BasePlayer
 from shared.utils.string import xstr
+from shared.utils.conversions import string_height_to_inches, inches_to_string_height
 
 
 class NBAPlayer(BasePlayer):
@@ -58,7 +59,7 @@ class NBAPlayer(BasePlayer):
         self.first_name = xstr(data['FIRST_NAME'])
         self.last_name = xstr(data['LAST_NAME'])
 
-        self.height = self.convert_height_to_inches(data['HEIGHT'])
+        self.height = string_height_to_inches(data['HEIGHT'])
         self.weight = int(data['WEIGHT'])
 
         self.birth_date = datetime.strptime(
@@ -72,13 +73,6 @@ class NBAPlayer(BasePlayer):
 
         self.country = xstr(data['COUNTRY'])
         self.school = xstr(data['SCHOOL'])
-
-    def convert_height_to_inches(self, height):
-        feet, inches = height.split("-")
-
-        height = 12 * int(feet) + int(inches)
-
-        return height
 
     def get_standardized_positions(self, position_string):
         positions = position_string.split("-")
