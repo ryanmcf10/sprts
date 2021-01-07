@@ -4,6 +4,7 @@ from django.db import models
 class BasePlayer(models.Model):
     first_name = models.TextField(blank=True)
     last_name = models.TextField(blank=True)
+    birth_date = models.DateField(blank=True, null=True)
 
     class Meta:
         abstract = True
