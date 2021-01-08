@@ -5,6 +5,7 @@ from django.db import models
 
 from nba_api.stats.endpoints import CommonPlayerInfo
 
+from nba.models.managers import NBAPlayerManager
 from shared.models import BasePlayer
 from shared.utils.string import xstr
 from shared.utils.conversions import string_height_to_inches, inches_to_string_height
@@ -24,6 +25,16 @@ class NBAPlayer(BasePlayer):
 
     height = models.PositiveSmallIntegerField(null=True)
     weight = models.PositiveSmallIntegerField(null=True)
+
+    objects = NBAPlayerManager
+
+    class Meta:
+        verbose_name = 'NBA Player'
+        verbose_name_plural = 'NBA Players'
+
+    @property
+    def string_height(self):
+        return inches_to_string_height(self.height) if self.height else None
 
     def get_current_team_membership(self):
         """
@@ -45,8 +56,12 @@ class NBAPlayer(BasePlayer):
         return current_team_membership.team if current_team_membership is not None else None
 
     def fetch_and_update_player_info(self):
+        """
+        Using the NBA API package, get and set up-to-date biographical information on this player
+        :return:
+        """
         json_data = json.loads(
-            CommonPlayerInfo(player_id=self.nba_api_id).nba_response.get_json()
+            CommonPlayerInfo(player_id=self.nba_api_id).get_json()
         )
 
         data = dict(
@@ -69,21 +84,23 @@ class NBAPlayer(BasePlayer):
 
         self.number = xstr(data['JERSEY'])
 
-        self.position_1, self.position_2 = self.get_standardized_positions(data['POSITION'])
+        self.position_1, self.position_2 = get_standardized_positions(data['POSITION'])
 
         self.country = xstr(data['COUNTRY'])
         self.school = xstr(data['SCHOOL'])
 
-    def get_standardized_positions(self, position_string):
-        positions = position_string.split("-")
 
-        standardized_positions = {
-            'Center': 'C',
-            'Forward': 'F',
-            'Guard': 'G'
-        }
 
-        position_1 = standardized_positions[positions[0]]
-        position_2 = standardized_positions[positions[1]] if len(positions) > 1 else ''
+def get_standardized_positions(position_string):
+    positions = position_string.split("-")
 
-        return position_1, position_2
+    standardized_positions = {
+        'Center': 'C',
+        'Forward': 'F',
+        'Guard': 'G'
+    }
+
+    position_1 = standardized_positions[positions[0]]
+    position_2 = standardized_positions[positions[1]] if len(positions) > 1 else ''
+
+    return position_1, position_2

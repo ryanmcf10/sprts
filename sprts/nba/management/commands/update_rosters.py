@@ -75,7 +75,7 @@ class Command(BaseCommand):
         """
         raw_roster = CommonTeamRoster(team.nba_api_id)
 
-        json_roster = json.loads(raw_roster.nba_response.get_json())
+        json_roster = json.loads(raw_roster.get_json())
 
         return json_roster
 
