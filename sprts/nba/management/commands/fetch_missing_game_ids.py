@@ -6,20 +6,26 @@ from nba_api.stats.endpoints import ScoreboardV2
 
 from nba.models import NBAGame
 
-DELAY = 1 # time to wait between API requests, in seconds
+DELAY = 1  # time to wait between API requests, in seconds
 
 
 class Command(BaseCommand):
     help = "Attempt to find the NBA API Game ID for every games stored in the local database."
 
     def handle(self, *args, **options):
-        for date in NBAGame.objects.order_by('date').values_list('date', flat=True).distinct():
+
+        for date in NBAGame.objects\
+                .filter(nba_api_id='')\
+                .order_by('date')\
+                .values_list('date', flat=True)\
+                .distinct():
+
             print(str(date))
 
             raw_game_data = json.loads(ScoreboardV2(
-                game_date = str(date),
-                day_offset = 0,
-                league_id = '00'
+                game_date=str(date),
+                day_offset=0,
+                league_id='00'
             ).get_json())['resultSets'][0]
 
             game_data = []
@@ -41,7 +47,7 @@ class Command(BaseCommand):
 
                 try:
                     nba_game = NBAGame.objects.get(
-                        date = date,
+                        date=date,
                         home_team__nba_api_id=home_team_id,
                         away_team_id__nba_api_id=away_team_id
                     )
