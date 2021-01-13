@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.db import models
 
 from nba.utils.nba import fetch_team_gamelog
@@ -33,30 +35,14 @@ class NBATeamGameLog(models.Model):
     field_goals_made = models.PositiveSmallIntegerField()
     field_goals_attempted = models.PositiveSmallIntegerField()
 
-    @property
-    def field_goal_percentage(self):
-        return round(self.field_goals_made / self.field_goals_attempted, 3)
-
     three_pointers_made = models.PositiveSmallIntegerField()
     three_pointers_attempted = models.PositiveSmallIntegerField()
-
-    @property
-    def three_point_percentage(self):
-        return round(self.three_pointers_made / self.three_pointers_attempted, 3)
 
     free_throws_made = models.PositiveSmallIntegerField()
     free_throws_attempted = models.PositiveSmallIntegerField()
 
-    @property
-    def free_throw_percentage(self):
-        return round(self.free_throws_made / self.free_throws_attempted, 3)
-
     offensive_rebounds = models.PositiveSmallIntegerField()
     defensive_rebounds = models.PositiveSmallIntegerField()
-
-    @property
-    def rebounds(self):
-        return self.offensive_rebounds + self.defensive_rebounds
 
     assists = models.PositiveSmallIntegerField()
     steals = models.PositiveSmallIntegerField()
@@ -67,13 +53,33 @@ class NBATeamGameLog(models.Model):
     class Meta:
         verbose_name = 'NBA Team Game'
         verbose_name_plural = 'NBA Team Games'
+        unique_together = ['game', 'team']
+
+    def __str__(self):
+        return f"[{datetime.strftime(self.game.date, '%m/%d/%Y')}] {self.team}"
 
     def save(self, *args, **kwargs):
-        # fetch the gamelog from NBA API on the initial save only
+        # fetch gamelog data from NBA API on the initial save only
         if self.id is None:
             self.fetch_gamelog()
 
         super(NBATeamGameLog, self).save(*args, **kwargs)
+
+    @property
+    def field_goal_percentage(self):
+        return round(self.field_goals_made / self.field_goals_attempted, 3)
+
+    @property
+    def three_point_percentage(self):
+        return round(self.three_pointers_made / self.three_pointers_attempted, 3)
+
+    @property
+    def free_throw_percentage(self):
+        return round(self.free_throws_made / self.free_throws_attempted, 3)
+
+    @property
+    def rebounds(self):
+        return self.offensive_rebounds + self.defensive_rebounds
 
     def fetch_gamelog(self):
         gamelog = fetch_team_gamelog(self.game, self.team)
@@ -93,3 +99,15 @@ class NBATeamGameLog(models.Model):
         self.blocks = gamelog['BLK']
         self.turnovers = gamelog['TOV']
         self.team_fouls = gamelog['PF']
+
+    def get_opposing_team(self):
+        if self.game.home_team == self.team:
+            return self.game.away_team
+        else:
+            return self.game.home_team
+
+    def get_opposing_team_gamelog(self):
+        if self.game.home_team == self.team:
+            return self.game.away_team_gamelog
+        else:
+            return self.game.home_team_gamelog

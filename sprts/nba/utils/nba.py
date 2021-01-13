@@ -18,9 +18,12 @@ def fetch_team_gamelog(game, team):
         ).get_json()
     )['resultSets'][0]
 
-    return dict(
-        zip(
-            data['headers'],
-            data['rowSet'][0]
+    try:
+        return dict(
+            zip(
+                data['headers'],
+                data['rowSet'][0] # Values, if they exist. If nothing here, no game was played by 'team' on 'game.date'.
+            )
         )
-    )
+    except IndexError:
+        raise Exception(f"No gamelog data found for {team} on {game.date}. Was the game postponed?")

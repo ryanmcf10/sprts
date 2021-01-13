@@ -1,10 +1,5 @@
-import json
-from datetime import datetime
-
-from django import apps
+from django.apps import apps
 from django.db import models
-
-from nba_api.stats.endpoints import LeagueGameFinder
 
 
 class NBAGame(models.Model):
@@ -29,8 +24,33 @@ class NBAGame(models.Model):
     def __str__(self):
         return f"[{self.date}] {self.away_team} @ {self.home_team}"
 
-    def create_nbateamgamelogs(self):
+    def get_home_team_gamelog(self):
+        return self.team_gamelogs.get(team=self.home_team)
+
+    def get_away_team_gamelog(self):
+        return self.team_gamelogs.get(team=self.away_team)
+
+    def get_winning_team(self):
+        return self.team_gamelogs.select_related('team').get(result='W').team
+
+    def get_losing_team(self):
+        return self.team_gamelogs.select_related('team').get(result='L').team
+
+    def get_winning_team_gamelog(self):
+        return self.team_gamelogs.get(result='W')
+
+    def get_losing_team_gamelog(self):
+        return self.team_gamelogs.get(result='L')
+
+    def create_team_gamelogs(self):
         NBATeamGameLog = apps.get_model('nba', 'NBATeamGameLog')
+
+        gamelogs = NBATeamGameLog.objects.filter(game=self)
+
+        if gamelogs.count() == 2:
+            raise Exception("NBATeamGameLogs have already been created for this Game.")
+        elif gamelogs.count() == 1:
+            gamelogs.first().delete()  # Something went wrong and only 1 GameLog was created. Delete it and try again.
 
         NBATeamGameLog.objects.create(
             game=self,
@@ -41,16 +61,3 @@ class NBAGame(models.Model):
             game=self,
             team=self.home_team
         )
-
-    def fetch_nba_api_id(self):
-        # date needs to be in the form MM/DD/YYYY
-        if not (self.date and self.away_team and self.home_team):
-            raise Exception("Cannot fetch NBA API ID without knowing the date and teams for this game.")
-
-        data = json.loads(LeagueGameFinder(
-            player_or_team_abbreviation='T',
-            team_id_nullable=self.home_team.nba_api_id,
-            vs_team_id_nullable=self.away_team.nba_api_id,
-            date_from_nullable=datetime.strftime(self.date, '%m/%d/%Y'),
-            date_to_nullable=datetime.strftime(self.date, '%m/%d/%Y')
-        ).get_json())
