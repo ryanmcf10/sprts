@@ -1,11 +1,10 @@
-import json, time
-from datetime import date
+import time
+from datetime import date, timedelta
 
 from django.core.management.base import BaseCommand
 
-from nba_api.stats.endpoints import CommonTeamRoster
-
 from nba.models import NBAPlayer, NBATeam, NBATeamMembership
+from nba.utils.fetch import fetch_roster
 
 DELAY = 1 # time to wait between API requests, in seconds
 
@@ -24,12 +23,9 @@ class Command(BaseCommand):
             time.sleep(DELAY)
 
     def update_roster(self, team):
-        json_roster = self.fetch_json_roster(team)
-        roster_data = self.parse_json_roster(json_roster)
+        roster = fetch_roster(team)
 
-        players = roster_data['CommonTeamRoster']
-
-        for raw_player in players:
+        for raw_player in roster:
             nba_api_id = raw_player['PLAYER_ID']
 
             try:
@@ -56,7 +52,7 @@ class Command(BaseCommand):
                 player_current_team_membership = player.get_current_team_membership()
 
                 if player_current_team_membership is not None:
-                    player_current_team_membership.end_date = date.today()
+                    player_current_team_membership.end_date = date.today() - timedelta(days=1)
                     player_current_team_membership.save()
 
                 NBATeamMembership.objects.create(
@@ -65,45 +61,3 @@ class Command(BaseCommand):
                 )
 
             player.save()
-
-
-    def fetch_json_roster(self, team):
-        """
-        Request today's roster using NBA API and return it as 'messy' JSON.
-        :param team: NBATeam
-        :return:
-        """
-        raw_roster = CommonTeamRoster(team.nba_api_id)
-
-        json_roster = json.loads(raw_roster.get_json())
-
-        return json_roster
-
-
-    def parse_json_roster(self, json_roster):
-        """
-        Clean up the 'messy' JSON returned from NBA API using some crazy list/dict comprehensions to get something more
-        usable like:
-
-        {
-            'CommonTeamRoster': [
-                { player_1 dictionary},
-                { player_2 dictionary},
-                ...
-                { player_n dictionary},
-
-            'Coaches': [
-                { coach_1 dictionary},
-                { coach_2 dictionary},
-                ...
-                { coach_n dictionary},
-            ]
-        }
-        """
-
-        return {
-                    x['name']: [{
-                            x['headers'][i]: player[i] for i in range(len(x['headers']))
-                        } for player in x['rowSet']
-                    ] for x in json_roster['resultSets']
-                }

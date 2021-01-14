@@ -2,14 +2,14 @@ from datetime import datetime
 
 from django.db import models
 
-from nba.utils.nba import fetch_team_gamelog
+from nba.utils.fetch import fetch_team_gamelog
 
 
 class NBATeamGameLog(models.Model):
     team = models.ForeignKey(
         'NBATeam',
-        related_name='team_gamelogs',
-        related_query_name='team_gamelog',
+        related_name='gamelogs',
+        related_query_name='gamelog',
         on_delete=models.PROTECT
     )
 
@@ -51,9 +51,11 @@ class NBATeamGameLog(models.Model):
     team_fouls = models.PositiveSmallIntegerField()
 
     class Meta:
-        verbose_name = 'NBA Team Game'
-        verbose_name_plural = 'NBA Team Games'
+        verbose_name = 'NBA Team GameLog'
+        verbose_name_plural = 'NBA Team GameLogs'
         unique_together = ['game', 'team']
+
+        ordering = ['game__date']
 
     def __str__(self):
         return f"[{datetime.strftime(self.game.date, '%m/%d/%Y')}] {self.team}"

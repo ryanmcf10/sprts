@@ -1,11 +1,9 @@
-import json
 from datetime import datetime
 
 from django.db import models
 
-from nba_api.stats.endpoints import CommonPlayerInfo
-
 from nba.models.managers import NBAPlayerManager
+from nba.utils.fetch import fetch_player_info
 from shared.models import BasePlayer
 from shared.utils.string import xstr
 from shared.utils.conversions import string_height_to_inches, inches_to_string_height
@@ -55,21 +53,8 @@ class NBAPlayer(BasePlayer):
 
         return current_team_membership.team if current_team_membership is not None else None
 
-    def fetch_and_update_player_info(self):
-        """
-        Using the NBA API package, get and set up-to-date biographical information on this player
-        :return:
-        """
-        json_data = json.loads(
-            CommonPlayerInfo(player_id=self.nba_api_id).get_json()
-        )
-
-        data = dict(
-            zip(
-                json_data['resultSets'][0]['headers'],
-                json_data['resultSets'][0]['rowSet'][0]
-            )
-        )
+    def fetch_info(self):
+        data = fetch_player_info(self)
 
         self.first_name = xstr(data['FIRST_NAME'])
         self.last_name = xstr(data['LAST_NAME'])

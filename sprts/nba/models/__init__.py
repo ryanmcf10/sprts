@@ -3,3 +3,4 @@ from .nbateam import NBATeam
 from .nbateammembership import NBATeamMembership
 from .nbagame import NBAGame
 from .nbateamgamelog import NBATeamGameLog
+from .nbaplayergamelog import NBAPlayerGameLog
