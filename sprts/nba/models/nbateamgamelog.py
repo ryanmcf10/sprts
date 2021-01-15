@@ -30,25 +30,25 @@ class NBATeamGameLog(models.Model):
 
     result = models.CharField(max_length=1, choices=RESULT_CHOICES)
 
-    points = models.PositiveSmallIntegerField()
+    points = models.PositiveSmallIntegerField(default=0)
 
-    field_goals_made = models.PositiveSmallIntegerField()
-    field_goals_attempted = models.PositiveSmallIntegerField()
+    field_goals_made = models.PositiveSmallIntegerField(default=0)
+    field_goals_attempted = models.PositiveSmallIntegerField(default=0)
 
-    three_pointers_made = models.PositiveSmallIntegerField()
-    three_pointers_attempted = models.PositiveSmallIntegerField()
+    three_pointers_made = models.PositiveSmallIntegerField(default=0)
+    three_pointers_attempted = models.PositiveSmallIntegerField(default=0)
 
-    free_throws_made = models.PositiveSmallIntegerField()
-    free_throws_attempted = models.PositiveSmallIntegerField()
+    free_throws_made = models.PositiveSmallIntegerField(default=0)
+    free_throws_attempted = models.PositiveSmallIntegerField(default=0)
 
-    offensive_rebounds = models.PositiveSmallIntegerField()
-    defensive_rebounds = models.PositiveSmallIntegerField()
+    offensive_rebounds = models.PositiveSmallIntegerField(default=0)
+    defensive_rebounds = models.PositiveSmallIntegerField(default=0)
 
-    assists = models.PositiveSmallIntegerField()
-    steals = models.PositiveSmallIntegerField()
-    blocks = models.PositiveSmallIntegerField()
-    turnovers = models.PositiveSmallIntegerField()
-    team_fouls = models.PositiveSmallIntegerField()
+    assists = models.PositiveSmallIntegerField(default=0)
+    steals = models.PositiveSmallIntegerField(default=0)
+    blocks = models.PositiveSmallIntegerField(default=0)
+    turnovers = models.PositiveSmallIntegerField(default=0)
+    team_fouls = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         verbose_name = 'NBA Team GameLog'

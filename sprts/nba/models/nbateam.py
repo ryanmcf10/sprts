@@ -1,4 +1,7 @@
+from datetime import date
+
 from django.db import models
+from django.db.models import Q
 from django.apps import apps
 
 from shared.models import BaseTeam
@@ -14,9 +17,24 @@ class NBATeam(BaseTeam):
     def get_current_player_memberships(self):
         return self.player_memberships.filter(end_date=None)
 
-    def get_current_players(self):
+    def get_roster_on_date(self, date):
+        """
+        Return an NBAPlayer QuerySet of the players on this team on 'date'.
+        :param date:
+        :return:
+        """
         NBAPlayer = apps.get_model('nba', 'NBAPlayer')
 
         return NBAPlayer.objects.filter(
-            team_membership__in=self.get_current_player_memberships()
+            id__in=self.player_memberships.filter(
+                Q(end_date__isnull=True) | Q(end_date__gte=date),
+                start_date__lte=date
+            ).values_list('player__id', flat=True)
         )
+
+    def get_current_roster(self):
+        """
+        Return an NBAPlayer QuerySet of the players on this team today.
+        :return:
+        """
+        return self.get_roster_on_date(date.today())

@@ -3,6 +3,8 @@ from datetime import date, timedelta
 
 from django.core.management.base import BaseCommand
 
+from halo import Halo
+
 from nba.models import NBAPlayer, NBATeam, NBATeamMembership
 from nba.utils.fetch import fetch_roster
 
@@ -12,15 +14,29 @@ DELAY = 1 # time to wait between API requests, in seconds
 class Command(BaseCommand):
     help = 'Fetch the latest Team Rosters from NBA API and update'
 
+    NEW_PLAYERS = 0
+    PLAYERS_MOVED = 0
+
     def handle(self, *args, **options):
         # set all players to inactive. Activate them when they are found on a roster
         NBAPlayer.objects.update(is_active=False)
 
+
+        print("Updating rosters...")
+
         for team in NBATeam.objects.all():
-            print(f"{time.strftime('%X')}: {team}")
+            spinner = Halo(text=str(team), spinner='dots')
+
+            spinner.start()
             self.update_roster(team)
+            spinner.succeed()
 
             time.sleep(DELAY)
+
+        print("Done.")
+        print(f"{self.NEW_PLAYERS} new player" + ("s" if self.NEW_PLAYERS != 1 else "") + "found.")
+        print(f"{self.PLAYERS_MOVED} player" + ("s" if self.PLAYERS_MOVED != 1 else "") + " moved to new teams.")
+
 
     def update_roster(self, team):
         roster = fetch_roster(team)
@@ -30,10 +46,11 @@ class Command(BaseCommand):
 
             try:
                 player = NBAPlayer.objects.get(nba_api_id=nba_api_id)
-                print(f"Found {player}")
+                #print(f"Found {player}")
 
             except NBAPlayer.DoesNotExist:
-                print(f"Could not find {raw_player['PLAYER']} [ {raw_player['PLAYER_ID']}]")
+                #print(f"Could not find {raw_player['PLAYER']} [ {raw_player['PLAYER_ID']}]")
+                self.NEW_PLAYERS += 1
 
                 player = NBAPlayer.objects.create(
                     nba_api_id=nba_api_id
@@ -54,6 +71,7 @@ class Command(BaseCommand):
                 if player_current_team_membership is not None:
                     player_current_team_membership.end_date = date.today() - timedelta(days=1)
                     player_current_team_membership.save()
+                    self.PLAYERS_MOVED += 1
 
                 NBATeamMembership.objects.create(
                     player=player,

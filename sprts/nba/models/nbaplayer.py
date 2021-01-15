@@ -1,6 +1,7 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from django.db import models
+from django.db.models import Q
 
 from nba.models.managers import NBAPlayerManager
 from nba.utils.fetch import fetch_player_info
@@ -34,24 +35,28 @@ class NBAPlayer(BasePlayer):
     def string_height(self):
         return inches_to_string_height(self.height) if self.height else None
 
-    def get_current_team_membership(self):
+    def get_team_on_date(self, date):
         """
-        Return this player's current NBATeamMembership, if any
+        Return this player's NBATeam on the given 'date', if any.
+        :param date:
         :return:
         """
-        if self.team_memberships.count() == 0:
-            return None
+        team_membership = self.team_memberships.select_related('team').filter(start_date__lte=date)
 
-        return self.team_memberships.get(end_date=None)
+        if team_membership.count() == 0:
+            return None
+        else:
+            return team_membership.get(
+                Q(end_date__isnull=True) |
+                Q(end_date__gte=date)
+            ).team
 
     def get_current_team(self):
         """
-        Return this player's current NBATeam, if any
+        Return this player's current NBATeam, if any.
         :return:
         """
-        current_team_membership = self.get_current_team_membership()
-
-        return current_team_membership.team if current_team_membership is not None else None
+        return self.get_team_on_date(date.today())
 
     def fetch_info(self):
         data = fetch_player_info(self)
@@ -73,7 +78,6 @@ class NBAPlayer(BasePlayer):
 
         self.country = xstr(data['COUNTRY'])
         self.school = xstr(data['SCHOOL'])
-
 
 
 def get_standardized_positions(position_string):

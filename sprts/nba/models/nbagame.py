@@ -1,3 +1,5 @@
+import time
+
 from django.apps import apps
 from django.db import models
 
@@ -30,6 +32,12 @@ class NBAGame(models.Model):
     def get_away_team_gamelog(self):
         return self.team_gamelogs.get(team=self.away_team)
 
+    def get_home_team_roster(self):
+        return self.home_team.get_roster_on_date(self.date)
+
+    def get_away_team_roster(self):
+        return self.away_team.get_roster_on_date(self.date)
+
     def get_winning_team(self):
         return self.team_gamelogs.select_related('team').get(result='W').team
 
@@ -42,15 +50,16 @@ class NBAGame(models.Model):
     def get_losing_team_gamelog(self):
         return self.team_gamelogs.get(result='L')
 
+    def create_gamelogs(self):
+        try:
+            self.create_team_gamelogs()
+        except Exception as e:
+            raise e
+
+        self.create_player_gamelogs()
+
     def create_team_gamelogs(self):
         NBATeamGameLog = apps.get_model('nba', 'NBATeamGameLog')
-
-        gamelogs = NBATeamGameLog.objects.filter(game=self)
-
-        if gamelogs.count() == 2:
-            raise Exception("NBATeamGameLogs have already been created for this Game.")
-        elif gamelogs.count() == 1:
-            gamelogs.first().delete()  # Something went wrong and only 1 GameLog was created. Delete it and try again.
 
         NBATeamGameLog.objects.create(
             game=self,
@@ -61,3 +70,29 @@ class NBAGame(models.Model):
             game=self,
             team=self.home_team
         )
+
+    def create_player_gamelogs(self):
+        NBAPlayerGameLog = apps.get_model('nba', 'NBAPlayerGameLog')
+
+        for player in self.get_home_team_roster():
+            try:
+                NBAPlayerGameLog.objects.create(
+                    game=self,
+                    player=player
+                )
+            except Exception:
+                continue
+
+            time.sleep(1)
+
+        for player in self.get_away_team_roster():
+
+            try:
+                NBAPlayerGameLog.objects.create(
+                    game=self,
+                    player=player
+                )
+            except Exception:
+                continue
+
+            time.sleep(1)
